@@ -9,7 +9,41 @@
 
 namespace CTR_NAMESPACE {
 template <class T>
-struct contiguous_iterator_wrapper {};
+struct contiguous_iterator_wrapper {
+  T iter_;
+
+private:
+  using iter_traits = typename std::iterator_traits<T>::pointer;
+
+public:
+
+  contiguous_iterator_wrapper() = default;
+  contiguous_iterator_wrapper(T iter) : iter_(iter) {}
+
+  contiguous_iterator_wrapper& operator++() {
+    ++iter_;
+  }
+
+  contiguous_iterator_wrapper operator++(int) {
+    auto cpy = *this;
+    ++iter_;
+    return cpy;
+  }
+
+  decltype(*iter_) operator*() {
+    return *iter_;
+  }
+
+  decltype(*iter_) operator*() const {
+    return *iter_;
+  }
+
+  iter_traits::pointer operator->() const noexcept {
+    return iter_traits::to_address(iter_);
+  }
+
+  friend auto operator<=>(contiguous_iterator_wrapper, contiguous_iterator_wrapper) = default;
+};
 
 template <class T, class Alloc = std::allocator<T>>
 struct small_vector_traits {
@@ -20,8 +54,8 @@ private:
   using alloc_traits = std::allocator_traits<allocator_type>;
 
 public:
-  using iterator            = contiguous_iterator_wrapper<typename alloc_traits::pointer>;
-  using const_iterator      = contiguous_iterator_wrapper<typename alloc_traits::const_pointer>;
+  using iterator            = typename alloc_traits::pointer;
+  using const_iterator      = typename alloc_traits::const_pointer;
   using pointer_like_traits = ctr::pointer_like_traits<typename alloc_traits::pointer>;
 };
 
@@ -104,8 +138,8 @@ private:
     void set_long_end(pointer end) { end_ = end; }
     void set_long_cap(pointer cap) { cap_ = cap; }
 
-    value_type* data() { is_small() ? small_buffer_ : std::to_address(begin_); }
-    const value_type* data() const { is_small() ? small_buffer_ : std::to_address(begin_); }
+    value_type* data() { return is_small() ? small_buffer_ : std::to_address(begin_); }
+    const value_type* data() const { return is_small() ? small_buffer_ : std::to_address(begin_); }
 
     size_t get_size() const { return is_small() ? record_keeper_.size_ : (end_ - begin_); }
     size_t get_cap() const { return is_small() ? sbo_capacity : (cap_ - begin_); }
@@ -123,7 +157,7 @@ private:
   template <class Dummy>
     requires(!append_record_keeping)
   struct buffer<Dummy> {
-    static_assert(false, "Not yet implemented");
+    static_assert(sizeof(Dummy) == 0, "Not yet implemented");
   };
 
   [[NO_UNIQUE_ADDRESS]] buffer<> buffer_;
@@ -147,25 +181,44 @@ public:
     assign(first, last);
   }
 
-  small_vector(const small_vector& other, const allocator_type& alloc) : buffer_{}, alloc_(alloc) {}
+  // small_vector(const small_vector& other, const allocator_type& alloc) : buffer_{}, alloc_(alloc) {}
+
+  static_assert(std::is_trivial_v<value_type>);
 
   small_vector(const small_vector& other)
-      : small_vector(other, alloc_traits::select_on_container_copy_construction(other.alloc_)) {}
+      : buffer_(other.buffer_), alloc_(alloc_traits::select_on_container_copy_construction(other.alloc_)) {
+    if (!buffer_.is_small()) {
+      buffer_.set_long_begin(alloc_traits::allocate(alloc_, other.capacity()));
+      buffer_.set_long_end(buffer_.get_long_begin() + other.size());
+      buffer_.set_long_cap(buffer_.get_long_begin() + other.capacity());
+      ctr::uninitialized_allocator_copy(alloc_, other.begin(), other.end(), buffer_.get_long_begin());
+    }
+  }
 
   small_vector(small_vector&& other) : buffer_{}, alloc_(other.alloc_) {
-    if (other.is_small()) {
+    if (other.buffer_.is_small()) {
       ctr::uninitialized_allocator_relocate(alloc_, other.begin(), other.end(), buffer_.data());
       buffer_.set_size(other.size());
     } else {
       buffer_.set_long_begin(other.buffer_.get_long_begin());
       buffer_.set_long_end(other.buffer_.get_long_end());
       buffer_.set_long_cap(other.buffer_.get_long_cap());
+      buffer_.set_small(false);
       other.set_pilfered();
     }
   }
 
   small_vector& operator=(const small_vector&) = delete;
-  small_vector& operator=(small_vector&&)      = delete;
+  small_vector& operator=(small_vector&& other) {
+    if (&other == this) 
+      return *this;
+    if (!buffer_.is_small())
+      alloc_traits::deallocate(alloc_, buffer_.get_long_begin(), capacity());
+    buffer_ = std::move(other.buffer_);
+    alloc_ = std::move(other.alloc_);
+    other.set_pilfered();
+    return *this;
+  }
 
   ~small_vector() {
     if (!buffer_.is_small())
@@ -238,6 +291,11 @@ public:
   void clear() {
     ctr::allocator_destroy(begin(), end());
     buffer_.set_size(0);
+  }
+
+  void erase(iterator pos) {
+    std::move(pos + 1, end(), pos);
+    resize(size() - 1);
   }
 };
 } // namespace CTR_NAMESPACE
