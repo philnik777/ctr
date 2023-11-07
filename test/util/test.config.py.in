@@ -1,0 +1,14 @@
+import importlib.util
+import sys
+
+
+class Context:
+  cxx = "@CMAKE_CXX_COMPILER@"
+  include = "@CMAKE_CURRENT_SOURCE_DIR@/include"
+
+spec = importlib.util.spec_from_file_location("run_config", "@CMAKE_CURRENT_SOURCE_DIR@/test/util/run_config.py")
+module = importlib.util.module_from_spec(spec)
+sys.modules["run_config"] = module
+spec.loader.exec_module(module)
+
+module.run_tests(Context())

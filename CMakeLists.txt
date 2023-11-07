@@ -27,3 +27,5 @@ if (DOXYGEN_FOUND)
 else()
   message("Could not find doxygen - docs target is not available")
 endif()
+
+configure_file(test/util/test.config.py.in ${CMAKE_CURRENT_BINARY_DIR}/test.py @ONLY)

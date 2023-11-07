@@ -11,12 +11,18 @@ namespace CTR_NAMESPACE {
 template <class T>
 struct contiguous_iterator_wrapper {};
 
-template <class T>
+template <class T, class Alloc = std::allocator<T>>
 struct small_vector_traits {
-  using allocator_type      = std::allocator<T>;
-  using iterator            = contiguous_iterator_wrapper<typename allocator_type::pointer>;
-  using const_iterator      = contiguous_iterator_wrapper<typename allocator_type::const_pointer>;
-  using pointer_like_traits = ctr::pointer_like_traits<typename allocator_type::pointer>;
+public:
+  using allocator_type = Alloc;
+
+private:
+  using alloc_traits = std::allocator_traits<allocator_type>;
+
+public:
+  using iterator            = contiguous_iterator_wrapper<typename alloc_traits::pointer>;
+  using const_iterator      = contiguous_iterator_wrapper<typename alloc_traits::const_pointer>;
+  using pointer_like_traits = ctr::pointer_like_traits<typename alloc_traits::pointer>;
 };
 
 /// small_vector is similar to `std::vector` except that is stores \p SBOCapacity elements
@@ -51,7 +57,6 @@ private:
       sizeof(value_type) * sbo_capacity >= sizeof(pointer) * 3;
 
   template <class = void>
-    requires append_record_keeping
   struct buffer {
     union {
       struct {
@@ -70,7 +75,7 @@ private:
       uint16_t size_                                  : 15 = 0;
       [[CTR_PREFERRED_TYPE(bool)]] uint16_t is_large_ : 1  = false;
 
-      static_assert(std::numeric_limits<uint16_t>::max() / 2 <= sbo_capacity,
+      static_assert(sbo_capacity <= std::numeric_limits<uint16_t>::max() / 2,
                     "The maximum supported small buffer capacity is 32768");
     };
 
@@ -102,8 +107,8 @@ private:
     value_type* data() { is_small() ? small_buffer_ : std::to_address(begin_); }
     const value_type* data() const { is_small() ? small_buffer_ : std::to_address(begin_); }
 
-    size_t get_size() const { is_small() ? record_keeper_.size_ : (end_ - begin_); }
-    size_t get_cap() const { is_small() ? sbo_capacity : (cap_ - begin_); }
+    size_t get_size() const { return is_small() ? record_keeper_.size_ : (end_ - begin_); }
+    size_t get_cap() const { return is_small() ? sbo_capacity : (cap_ - begin_); }
 
     void set_size(size_type size) {
       if (is_small())
@@ -174,10 +179,13 @@ public:
       emplace_back(*first);
   }
 
-  value_type* data() { buffer_.data(); }
+  value_type* data() { return buffer_.data(); }
   const value_type* data() const { return buffer_.data(); }
 
+  value_type& operator[](size_type i) { return buffer_.data()[i]; }
+
   size_type size() const { return buffer_.get_size(); }
+  bool empty() const { return size() == 0; }
 
   iterator begin() { return ptr_traits::pointer_to(*data()); }
   const_iterator begin() const { return data(); }
@@ -213,7 +221,7 @@ public:
     [&] [[NO_INLINE]] () {
       auto new_cap    = recommend(n);
       auto new_buffer = alloc_traits::allocate(alloc_, new_cap);
-      exception_guard g([&] { alloc_traits::deallocate(alloc_, new_buffer); });
+      exception_guard g([&] { alloc_traits::deallocate(alloc_, new_buffer, new_cap); });
       ctr::uninitialized_allocator_relocate(
           alloc_, new_buffer, buffer_.data(), buffer_.data() + buffer_.get_size());
       g.complete();

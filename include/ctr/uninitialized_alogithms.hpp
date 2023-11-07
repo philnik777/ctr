@@ -22,7 +22,9 @@ template <class Alloc, class OutIter, class InIter>
 in_out_result<InIter, OutIter>
 uninitialized_allocator_relocate(Alloc& alloc, InIter ifirst, InIter ilast, OutIter ofirst) {
   auto orig_ofirst = ofirst;
-  exception_guard g([&, orig_ifirst = ifirst] { ctr::allocator_destroy(orig_ifirst, ifirst); });
+  exception_guard g([&, orig_ifirst = ifirst] {
+    ctr::allocator_destroy(alloc, orig_ifirst, ifirst);
+  });
   while (ifirst != ilast) {
     std::allocator_traits<Alloc>::construct(
         alloc, std::to_address(ifirst), std::move_if_noexcept(*ofirst));
