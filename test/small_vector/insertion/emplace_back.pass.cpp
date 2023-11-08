@@ -1,7 +1,7 @@
 #include <cassert>
 #include <ctr/small_vector.hpp>
 
-int mani() {
+int main() {
   {
     ctr::small_vector<int, 16> vec;
     vec.emplace_back(1);
