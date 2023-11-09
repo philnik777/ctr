@@ -10,17 +10,17 @@ namespace CTR_NAMESPACE {
 template <class Rollback>
 class exception_guard {
 public:
-  exception_guard(Rollback rollback) : rollback_(std::move(rollback)) {}
-  exception_guard(const exception_guard&) = delete;
-  exception_guard(exception_guard&&) = delete;
+  constexpr exception_guard(Rollback rollback) : rollback_(std::move(rollback)) {}
+  exception_guard(const exception_guard&)            = delete;
+  exception_guard(exception_guard&&)                 = delete;
   exception_guard& operator=(const exception_guard&) = delete;
-  exception_guard& operator=(exception_guard&&) = delete;
-  ~exception_guard() {
+  exception_guard& operator=(exception_guard&&)      = delete;
+  constexpr ~exception_guard() {
     if (!complete_)
       rollback_();
   }
 
-  void complete() { complete_ = true; }
+  constexpr void complete() { complete_ = true; }
 
 private:
   [[NO_UNIQUE_ADDRESS]] Rollback rollback_;

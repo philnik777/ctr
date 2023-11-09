@@ -7,6 +7,7 @@ def run_tests(context):
 
   tests = list(path.rglob("*.cpp"))
 
+  test_failed = False
   for test in tests:
     extra_arguments = ""
     if (test.name.endswith(".compile.pass.cpp")):
@@ -17,4 +18,6 @@ def run_tests(context):
       print("PASS")
     else:
       print(f"FAIL\nTest {test} failed with output:\n{result.stdout}")
-      exit(1)
+      test_failed = True
+  if test_failed:
+    exit(1)

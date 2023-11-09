@@ -2,7 +2,7 @@
 #include <ctr/small_vector.hpp>
 #include <vector>
 
-int main() {
+constexpr bool test() {
   { // empty vector
     ctr::small_vector<int, 16> vec;
     auto vec2 = vec;
@@ -24,4 +24,11 @@ int main() {
     std::vector<int> expected = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
     assert(std::ranges::equal(vec2, expected));
   }
+
+  return true;
+}
+
+int main() {
+  test();
+  static_assert(test());
 }

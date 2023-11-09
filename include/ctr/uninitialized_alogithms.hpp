@@ -19,7 +19,7 @@ void allocator_destroy(Alloc& alloc, Iter first, Iter last) {
 }
 
 template <class Alloc, class OutIter, class InIter>
-in_out_result<InIter, OutIter>
+constexpr in_out_result<InIter, OutIter>
 uninitialized_allocator_relocate(Alloc& alloc, InIter ifirst, InIter ilast, OutIter ofirst) {
   auto orig_ofirst = ofirst;
   exception_guard g([&, orig_ifirst = ifirst] {
@@ -27,26 +27,24 @@ uninitialized_allocator_relocate(Alloc& alloc, InIter ifirst, InIter ilast, OutI
   });
   while (ifirst != ilast) {
     std::allocator_traits<Alloc>::construct(
-        alloc, std::to_address(ifirst), std::move_if_noexcept(*ofirst));
+        alloc, std::to_address(ofirst), std::move_if_noexcept(*ifirst));
 
     ++ifirst;
     ++ofirst;
   }
   g.complete();
-  ctr::allocator_destroy(alloc, orig_ofirst, ofirst);
   return {ifirst, ofirst};
 }
 
 template <class Alloc, class OutIter, class InIter>
-in_out_result<InIter, OutIter>
+constexpr in_out_result<InIter, OutIter>
 uninitialized_allocator_copy(Alloc& alloc, InIter ifirst, InIter ilast, OutIter ofirst) {
   auto orig_ofirst = ofirst;
   exception_guard g([&, orig_ifirst = ifirst] {
     ctr::allocator_destroy(alloc, orig_ifirst, ifirst);
   });
   while (ifirst != ilast) {
-    std::allocator_traits<Alloc>::construct(
-        alloc, std::to_address(ifirst), *ofirst);
+    std::allocator_traits<Alloc>::construct(alloc, std::to_address(ofirst), *ifirst);
 
     ++ifirst;
     ++ofirst;

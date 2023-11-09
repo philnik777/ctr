@@ -2,7 +2,7 @@
 #include <ctr/small_vector.hpp>
 #include <vector>
 
-int main() {
+constexpr bool test() {
   { // empty vector
     ctr::small_vector<int, 16> vec;
     ctr::small_vector<int, 16> vec2;
@@ -28,6 +28,15 @@ int main() {
     vec2 = std::move(vec);
     assert(vec.empty());
     std::vector<int> expected = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16};
+    for (size_t i = 0; i != 17; ++i)
+      assert(expected[i] == vec2[i]);
     assert(std::ranges::equal(vec2, expected));
   }
+
+  return true;
+}
+
+int main() {
+  test();
+  static_assert(test());
 }
