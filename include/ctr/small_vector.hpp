@@ -255,6 +255,7 @@ public:
   constexpr const value_type* data() const { return buffer_.data(); }
 
   constexpr value_type& operator[](size_type i) { return buffer_.data()[i]; }
+  constexpr const value_type& operator[](size_type i) const { return buffer_.data()[i]; }
 
   constexpr size_type size() const { return buffer_.get_size(); }
   constexpr bool empty() const { return size() == 0; }
