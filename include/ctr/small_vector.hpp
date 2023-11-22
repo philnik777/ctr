@@ -1,6 +1,7 @@
 #ifndef CTR_SMALL_VECTOR_HPP
 #define CTR_SMALL_VECTOR_HPP
 
+#include <algorithm>
 #include <ctr/config.hpp>
 #include <ctr/pointer_like_traits.hpp>
 #include <ctr/uninitialized_alogithms.hpp>
@@ -117,7 +118,7 @@ private:
 
     constexpr void set_short_size(size_t size) {
       CTR_INTERNAL_ASSERT(size <= cbo_capacity);
-      record_keeper_.size_ = size;
+      record_keeper_.size_ = static_cast<uint16_t>(size);
     }
 
     constexpr pointer get_long_begin() const { return slu_.large_.begin_; }
@@ -136,11 +137,12 @@ private:
     }
 
     constexpr size_t get_size() const {
-      return is_small() ? record_keeper_.size_ : (get_long_end() - get_long_begin());
+      return is_small() ? record_keeper_.size_
+                        : static_cast<size_t>(get_long_end() - get_long_begin());
     }
 
     constexpr size_t get_cap() const {
-      return is_small() ? sbo_capacity : (get_long_cap() - get_long_begin());
+      return is_small() ? sbo_capacity : static_cast<size_t>(get_long_cap() - get_long_begin());
     }
 
     constexpr void set_size(size_type size) {
@@ -278,6 +280,9 @@ public:
     buffer_.set_size(size() + 1);
     return back();
   }
+
+  constexpr value_type& push_back(const value_type& v) { return emplace_back(v); }
+  constexpr value_type& push_back(value_type&& v) { return emplace_back(std::move(v)); }
 
   void resize(size_type n) {
     reserve(n);

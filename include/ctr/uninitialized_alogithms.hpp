@@ -21,7 +21,6 @@ void allocator_destroy(Alloc& alloc, Iter first, Iter last) {
 template <class Alloc, class OutIter, class InIter>
 constexpr in_out_result<InIter, OutIter>
 uninitialized_allocator_relocate(Alloc& alloc, InIter ifirst, InIter ilast, OutIter ofirst) {
-  auto orig_ofirst = ofirst;
   exception_guard g([&, orig_ifirst = ifirst] {
     ctr::allocator_destroy(alloc, orig_ifirst, ifirst);
   });
@@ -39,7 +38,6 @@ uninitialized_allocator_relocate(Alloc& alloc, InIter ifirst, InIter ilast, OutI
 template <class Alloc, class OutIter, class InIter>
 constexpr in_out_result<InIter, OutIter>
 uninitialized_allocator_copy(Alloc& alloc, InIter ifirst, InIter ilast, OutIter ofirst) {
-  auto orig_ofirst = ofirst;
   exception_guard g([&, orig_ifirst = ifirst] {
     ctr::allocator_destroy(alloc, orig_ifirst, ifirst);
   });
