@@ -295,7 +295,7 @@ public:
   }
 
   void clear() {
-    ctr::allocator_destroy(begin(), end());
+    ctr::allocator_destroy(alloc_, begin(), end());
     buffer_.set_size(0);
   }
 
