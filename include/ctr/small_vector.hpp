@@ -22,17 +22,19 @@ public:
 
   contiguous_iterator_wrapper& operator++() { ++iter_; }
 
-  contiguous_iterator_wrapper operator++(int) {
+  [[CTR_ACCESSOR]] contiguous_iterator_wrapper operator++(int) {
     auto cpy = *this;
     ++iter_;
     return cpy;
   }
 
-  decltype(*iter_) operator*() { return *iter_; }
+  [[CTR_ACCESSOR]] decltype(*iter_) operator*() { return *iter_; }
 
-  decltype(*iter_) operator*() const { return *iter_; }
+  [[CTR_ACCESSOR]] decltype(*iter_) operator*() const { return *iter_; }
 
-  iter_traits::pointer operator->() const noexcept { return iter_traits::to_address(iter_); }
+  [[CTR_ACCESSOR]] iter_traits::pointer operator->() const noexcept {
+    return iter_traits::to_address(iter_);
+  }
 
   friend auto operator<=>(contiguous_iterator_wrapper, contiguous_iterator_wrapper) = default;
 };
@@ -113,7 +115,7 @@ private:
 
     record_keeping<> record_keeper_;
 
-    constexpr bool is_small() const { return !record_keeper_.is_large_; }
+    [[CTR_ACCESSOR]] constexpr bool is_small() const { return !record_keeper_.is_large_; }
     constexpr void set_small(bool small) { record_keeper_.is_large_ = !small; }
 
     constexpr void set_short_size(size_t size) {
@@ -121,27 +123,27 @@ private:
       record_keeper_.size_ = static_cast<uint16_t>(size);
     }
 
-    constexpr pointer get_long_begin() const { return slu_.large_.begin_; }
-    constexpr pointer get_long_end() const { return slu_.large_.end_; }
-    constexpr pointer get_long_cap() const { return slu_.large_.cap_; }
+    [[CTR_ACCESSOR]] constexpr pointer get_long_begin() const { return slu_.large_.begin_; }
+    [[CTR_ACCESSOR]] constexpr pointer get_long_end() const { return slu_.large_.end_; }
+    [[CTR_ACCESSOR]] constexpr pointer get_long_cap() const { return slu_.large_.cap_; }
 
     constexpr void set_long_begin(pointer begin) { slu_.large_.begin_ = begin; }
     constexpr void set_long_end(pointer end) { slu_.large_.end_ = end; }
     constexpr void set_long_cap(pointer cap) { slu_.large_.cap_ = cap; }
 
-    constexpr value_type* data() {
+    [[CTR_ACCESSOR]] constexpr value_type* data() {
       return is_small() ? slu_.small_buffer_ : std::to_address(get_long_begin());
     }
-    constexpr const value_type* data() const {
+    [[CTR_ACCESSOR]] constexpr const value_type* data() const {
       return is_small() ? slu_.small_buffer_ : std::to_address(get_long_begin());
     }
 
-    constexpr size_t get_size() const {
+    [[CTR_ACCESSOR]] constexpr size_t get_size() const {
       return is_small() ? record_keeper_.size_
                         : static_cast<size_t>(get_long_end() - get_long_begin());
     }
 
-    constexpr size_t get_cap() const {
+    [[CTR_ACCESSOR]] constexpr size_t get_cap() const {
       return is_small() ? sbo_capacity : static_cast<size_t>(get_long_cap() - get_long_begin());
     }
 
@@ -161,8 +163,8 @@ private:
     static_assert(sizeof(Dummy) == 0, "Not yet implemented");
   };
 
-  [[NO_UNIQUE_ADDRESS]] buffer<> buffer_;
-  [[NO_UNIQUE_ADDRESS]] allocator_type alloc_;
+  [[CTR_NO_UNIQUE_ADDRESS]] buffer<> buffer_;
+  [[CTR_NO_UNIQUE_ADDRESS]] allocator_type alloc_;
 
   constexpr size_type recommend(size_type new_size) const {
     return std::max<size_type>(2 * capacity(), new_size);
@@ -173,7 +175,7 @@ private:
     buffer_.set_short_size(0);
   }
 
-  [[NO_INLINE]] constexpr void reserve_slow_path(size_t n) {
+  [[CTR_NOINLINE]] constexpr void reserve_slow_path(size_t n) {
     auto new_cap    = recommend(n);
     auto new_buffer = alloc_traits::allocate(alloc_, new_cap);
     exception_guard g([&] { alloc_traits::deallocate(alloc_, new_buffer, new_cap); });
@@ -253,25 +255,27 @@ public:
       emplace_back(*first);
   }
 
-  constexpr value_type* data() { return buffer_.data(); }
-  constexpr const value_type* data() const { return buffer_.data(); }
+  [[CTR_ACCESSOR]] constexpr value_type* data() { return buffer_.data(); }
+  [[CTR_ACCESSOR]] constexpr const value_type* data() const { return buffer_.data(); }
 
-  constexpr value_type& operator[](size_type i) { return buffer_.data()[i]; }
-  constexpr const value_type& operator[](size_type i) const { return buffer_.data()[i]; }
+  [[CTR_ACCESSOR]] constexpr value_type& operator[](size_type i) { return buffer_.data()[i]; }
+  [[CTR_ACCESSOR]] constexpr const value_type& operator[](size_type i) const {
+    return buffer_.data()[i];
+  }
 
-  constexpr size_type size() const { return buffer_.get_size(); }
-  constexpr bool empty() const { return size() == 0; }
+  [[CTR_ACCESSOR]] constexpr size_type size() const { return buffer_.get_size(); }
+  [[CTR_ACCESSOR]] constexpr bool empty() const { return size() == 0; }
 
-  constexpr iterator begin() { return data(); }
-  constexpr const_iterator begin() const { return data(); }
+  [[CTR_ACCESSOR]] constexpr iterator begin() { return data(); }
+  [[CTR_ACCESSOR]] constexpr const_iterator begin() const { return data(); }
 
-  constexpr iterator end() { return data() + size(); }
-  constexpr const_iterator end() const { return data() + size(); }
+  [[CTR_ACCESSOR]] constexpr iterator end() { return data() + size(); }
+  [[CTR_ACCESSOR]] constexpr const_iterator end() const { return data() + size(); }
 
-  constexpr size_type capacity() const { return buffer_.get_cap(); }
+  [[CTR_ACCESSOR]] constexpr size_type capacity() const { return buffer_.get_cap(); }
 
-  constexpr value_type& back() { return *(data() + size() - 1); }
-  const value_type& back() const { return *(data() + size() - 1); }
+  [[CTR_ACCESSOR]] constexpr value_type& back() { return *(data() + size() - 1); }
+  [[CTR_ACCESSOR]] constexpr const value_type& back() const { return *(data() + size() - 1); }
 
   template <class... Args>
   constexpr value_type& emplace_back(Args&&... args) {

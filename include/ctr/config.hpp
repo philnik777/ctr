@@ -20,18 +20,28 @@
 #endif
 
 #if __has_cpp_attribute(msvc::no_unique_address)
-#  define NO_UNIQUE_ADDRESS msvc::no_unique_address
+#  define CTR_NO_UNIQUE_ADDRESS msvc::no_unique_address
 #elif __has_cpp_attribute(no_unique_address)
-#  define NO_UNIQUE_ADDRESS no_unique_address
+#  define CTR_NO_UNIQUE_ADDRESS no_unique_address
 #else
-#  define NO_UNIQUE_ADDRESS
+#  define CTR_NO_UNIQUE_ADDRESS
 #endif
 
 #if __has_cpp_attribute(gnu::noinline)
-#  define NO_INLINE gnu::noinline
+#  define CTR_NOINLINE gnu::noinline
 #else
-#  deinfe NO_INLINE
+#  define CTR_NOINLINE
 #endif
+
+#if __has_cpp_attribute(gnu::always_inline)
+#  define CTR_ALWAYS_INLINE gnu::always_inline
+#elif __has_cpp_attribute(msvc::forceinline)
+#  define CTR_ALWAYS_INLINE msvc::forceinline
+#else
+#  define CTR_ALWAYS_INLINE
+#endif
+
+#define CTR_ACCESSOR nodiscard, CTR_ALWAYS_INLINE
 
 // Assertions
 #ifdef CTR_TESTING

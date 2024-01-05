@@ -23,7 +23,7 @@ public:
   constexpr void complete() { complete_ = true; }
 
 private:
-  [[NO_UNIQUE_ADDRESS]] Rollback rollback_;
+  [[CTR_NO_UNIQUE_ADDRESS]] Rollback rollback_;
   bool complete_ = false;
 };
 } // namespace CTR_NAMESPACE
